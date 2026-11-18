@@ -29,6 +29,10 @@ WORKDIR /app
 COPY --chown=$TARGET_USER ./out/rauthy_$TARGETARCH ./rauthy
 COPY --chown=$TARGET_USER ./config-local-test.toml ./config-local-test.toml
 
+# rauthy's licence, and the licences of what the fork adds (the binary embeds the Roboto fonts)
+COPY --chown=$TARGET_USER ./LICENSE ./LICENSE
+COPY --chown=$TARGET_USER ./licenses/ ./licenses/
+
 # empty dirs copied upfront for the right owner
 COPY --chown=$TARGET_USER ./out/empty/ ./data
 COPY --chown=$TARGET_USER ./out/empty/ ./tls

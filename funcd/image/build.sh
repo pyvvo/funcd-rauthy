@@ -84,7 +84,8 @@ mkdir -p "$ctx/out/empty"
 in_builder funcd-rauthy-builder bash -c \
     'mkdir -p out && cp /target/x86_64-unknown-linux-gnu/release/rauthy out/rauthy_amd64 && cp /target/aarch64-unknown-linux-gnu/release/rauthy out/rauthy_arm64'
 cp out/rauthy_amd64 out/rauthy_arm64 "$ctx/out/"
-cp config-local-test.toml "$ctx/"
+cp config-local-test.toml LICENSE "$ctx/"
+cp -R funcd/licenses "$ctx/licenses"
 
 args=(
     -f funcd/image/Dockerfile
