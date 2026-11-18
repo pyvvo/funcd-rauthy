@@ -1,0 +1,86 @@
+name: funcd CI
+
+# The fork's own checks: the guard, the mail templates, and the UI the fork changes. Upstream's
+# Code Style workflow covers the rest of rauthy; this one does not rebuild the backend.
+on:
+  pull_request:
+    branches:
+      - funcd-ui
+  push:
+    branches:
+      - funcd-ui
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install the mail compiler
+        working-directory: funcd/email
+        run: npm ci --no-audit --no-fund
+
+      # The base is the upstream tag the branch is built on: release tags are funcd-rauthy-v*.
+      - name: Guard
+        run: bash funcd/check.sh "$(git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD)"
+
+  ui:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/sebadob/rauthy-builder:20260519
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Find the upstream tag and the fork's frontend files
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          base=$(git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD)
+          git diff --name-only --relative=frontend "$base"...HEAD |
+            grep -E '\.(svelte|css|js|ts|html)$' > "$RUNNER_TEMP/fork-files" || true
+          cat "$RUNNER_TEMP/fork-files"
+
+      - name: Build the UI
+        run: |
+          just build-wasm
+          (cd frontend && npm ci --no-audit --no-fund)
+          just build-ui
+
+      - name: Format of the fork's files
+        working-directory: frontend
+        run: |
+          [ -s "$RUNNER_TEMP/fork-files" ] || exit 0
+          xargs ./node_modules/prettier/bin/prettier.cjs --check < "$RUNNER_TEMP/fork-files"
+
+      # Upstream's own files carry type errors at the tag too, so only the fork's are checked.
+      - name: Types in the fork's files
+        working-directory: frontend
+        run: |
+          npx svelte-kit sync
+          ./node_modules/svelte-check/bin/svelte-check --tsconfig ./tsconfig.json --output machine > "$RUNNER_TEMP/svelte-check" || true
+          bad=$(grep -E ' (ERROR|WARNING) ' "$RUNNER_TEMP/svelte-check" | grep -F -f "$RUNNER_TEMP/fork-files" || true)
+          if [ -n "$bad" ]; then
+            printf '%s\n' "$bad"
+            exit 1
+          fi
+          tail -1 "$RUNNER_TEMP/svelte-check"
+
+      - name: Contract tests
+        working-directory: frontend
+        run: |
+          npx playwright install --with-deps chromium
+          node --test tests/webauthn-auth.node.mjs tests/redirect-uri.node.mjs tests/password-reset.node.mjs

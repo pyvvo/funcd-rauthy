@@ -46,6 +46,51 @@ just build-ui
 cargo build --release
 ```
 
+## Image
+
+`funcd/image/build.sh` builds `ghcr.io/pyvvo/funcd-rauthy:<rauthy version>-funcd.<commit>` the way
+upstream's `just build` does: in a builder container (`funcd/image/builder.Dockerfile`) it builds the UI
+and the release binaries for amd64 and arm64, then wraps them in upstream's distroless runtime image with
+funcd's labels (`funcd/image/Dockerfile`). Run it on a committed tree; it needs a Docker daemon with
+enough memory for the release profile's full LTO (a 16 GiB VM is plenty).
+
+```bash
+DOCKER="docker --context colima-funcd-build" funcd/image/build.sh
+DOCKER="docker --context colima-funcd-build" funcd/image/build.sh --push
+```
+
+Without `--push` it loads the build host's platform into Docker; with it, both platforms go to the
+registry, which needs `docker login ghcr.io` with a token that has `write:packages`. The script skips
+the UI build when the committed frontend sources are unchanged since the last one, so a rebuild does not
+relink both binaries.
+
+## Licence
+
+rauthy is licensed under Apache-2.0 (`LICENSE`), which allows this modified version to be published
+and distributed. In return, every upstream file the fork changes carries a notice saying so, the image
+ships `LICENSE` and `licenses/`, and the name "rauthy" only says where this comes from: funcd-rauthy is
+not rauthy's official distribution and is not endorsed by its author. The self-hosted Roboto fonts are
+under the SIL Open Font License 1.1 (`funcd/licenses/Roboto-OFL-1.1.txt`). The funcd mark and
+wordmark are The funcd Authors'.
+
+## Releases and CI
+
+Releases come from GitHub Actions, as in the other funcd repositories; a local build is only for
+development.
+
+- **`funcd-ci.yml`**, on PRs and on `funcd-ui`: the guard (with the mail templates' freshness), the UI
+  build, prettier and svelte-check on the fork's frontend files (upstream's own files carry type errors
+  at the tag), and upstream's contract tests.
+- **`funcd-pr-title.yml`**: PRs are squash-merged with their title as the commit message, so the title
+  must be a conventional commit.
+- **`funcd-release.yml`**: release-please (`funcd/release-please-config.json`) keeps a release PR open
+  on `funcd-ui`. Merging it tags `funcd-rauthy-v<version>`, writes `funcd/CHANGELOG.md`, and builds
+  and pushes `ghcr.io/pyvvo/funcd-rauthy:<version>` with `funcd/image/build.sh`.
+
+Release tags carry the `funcd-rauthy-` prefix so they never meet upstream's `v<version>` tags. After a
+rebase onto a new upstream tag, the last release commit is no longer in the history: set
+`last-release-sha` in the release-please config to the new upstream tag's commit for the next release.
+
 ## Develop
 
 The backend runs in a container built from `funcd/dev/Dockerfile`, the UI in vite with hot reload.
