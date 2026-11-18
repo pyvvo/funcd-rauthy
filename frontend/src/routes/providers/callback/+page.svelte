@@ -1,3 +1,11 @@
+<script module lang="ts">
+    // funcd layout: markup and styles of this page are funcd's; the instance
+    // script below is upstream rauthy, unchanged, so rebases only conflict on
+    // markup.
+    import FuncdAuthShell from '$lib5/funcd/FuncdAuthShell.svelte';
+    import FuncdAlert from '$lib5/funcd/FuncdAlert.svelte';
+</script>
+
 <script lang="ts">
     import { getProviderToken, getVerifierUpstreamFromStorage } from '$utils/helpers';
     import { onMount } from 'svelte';
@@ -177,55 +185,52 @@
     <title>Callback</title>
 </svelte:head>
 
-<ContentCenter>
-    {#if mfaPurpose}
-        {#if mfaKind == 'webauthn'}
-            <WebauthnRequest purpose={mfaPurpose} onSuccess={onMfaSuccess} onError={onMfaError} />
-        {:else if mfaKind == 'otp' && activeOtps}
-            <OtpRequest
-                {activeOtps}
-                purpose={mfaPurpose}
-                onSuccess={onMfaSuccess}
-                onError={onMfaError}
-            />
-        {/if}
-    {:else if clientMfaForce}
-        <div class="btn flex-col">
-            <Button onclick={() => (window.location.href = '/auth/v1/account')}>Account</Button>
-        </div>
-    {:else if needsValuesUpdate}
-        <div>
-            <p>{t.authorize.needsUserUpdate}</p>
-            <Button onclick={() => window.location.replace('/auth/v1/account')}>
-                {t.authorize.navigateToAccount}
+{#if mfaPurpose || clientMfaForce || needsValuesUpdate || tos || error}
+    <FuncdAuthShell>
+        {#if mfaPurpose}
+            {#if mfaKind == 'webauthn'}
+                <WebauthnRequest
+                    purpose={mfaPurpose}
+                    onSuccess={onMfaSuccess}
+                    onError={onMfaError}
+                />
+            {:else if mfaKind == 'otp' && activeOtps}
+                <OtpRequest
+                    {activeOtps}
+                    purpose={mfaPurpose}
+                    onSuccess={onMfaSuccess}
+                    onError={onMfaError}
+                />
+            {/if}
+        {:else if clientMfaForce}
+            <Button onclick={() => (window.location.href = '/auth/v1/account')} width="100%">
+                Account
             </Button>
-        </div>
-    {:else if tos}
-        <TosAccept
-            {tos}
-            forceAccept={tosForceAccept}
-            {tosAcceptCode}
-            onToSAccept={handleAuthRes}
-            {onToSCancel}
-        />
-    {:else if error}
-        <div class="err">
-            {error}
-        </div>
-    {/if}
-</ContentCenter>
-
-<ThemeSwitch absolute />
-<LangSelector absolute />
+        {:else if needsValuesUpdate}
+            <div class="stack">
+                <p>{t.authorize.needsUserUpdate}</p>
+                <Button onclick={() => window.location.replace('/auth/v1/account')} width="100%">
+                    {t.authorize.navigateToAccount}
+                </Button>
+            </div>
+        {:else if tos}
+            <TosAccept
+                {tos}
+                forceAccept={tosForceAccept}
+                {tosAcceptCode}
+                onToSAccept={handleAuthRes}
+                {onToSCancel}
+            />
+        {:else if error}
+            <FuncdAlert color="error">{error}</FuncdAlert>
+        {/if}
+    </FuncdAuthShell>
+{/if}
 
 <style>
-    .btn {
-        margin: 5px 0;
-        display: flex;
-    }
-
-    .flex-col {
+    .stack {
         display: flex;
         flex-direction: column;
+        gap: 16px;
     }
 </style>

@@ -1,3 +1,11 @@
+<script module lang="ts">
+    // funcd layout: markup and styles of this page are funcd's; the instance
+    // script below is upstream rauthy, unchanged, so rebases only conflict on
+    // markup.
+    import FuncdAuthShell from '$lib5/funcd/FuncdAuthShell.svelte';
+    import FuncdAlert from '$lib5/funcd/FuncdAlert.svelte';
+</script>
+
 <script lang="ts">
     import {
         deleteVerifierFromStorage,
@@ -86,7 +94,7 @@
 </svelte:head>
 
 {#if err}
-    <div class="err">
-        {err}
-    </div>
+    <FuncdAuthShell>
+        <FuncdAlert color="error">{err}</FuncdAlert>
+    </FuncdAuthShell>
 {/if}

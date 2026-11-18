@@ -1,3 +1,10 @@
+<script module lang="ts">
+    // funcd layout: markup and styles of this page are funcd's; the instance
+    // script below is upstream rauthy, unchanged, so rebases only conflict on
+    // markup.
+    import FuncdAuthShell from '$lib5/funcd/FuncdAuthShell.svelte';
+</script>
+
 <script lang="ts">
     import Button from '$lib5/button/Button.svelte';
     import Main from '$lib5/Main.svelte';
@@ -28,50 +35,34 @@
 </script>
 
 <svelte:head>
-    <title>Rauthy Home</title>
+    <title>funcd</title>
 </svelte:head>
 
 <Template id={TPL_ADMIN_BUTTON_HIDE} bind:value={hideAdminButton} />
 <Template id={TPL_IS_REG_OPEN} bind:value={isRegOpen} />
 
-<Main>
-    <ContentCenter>
-        <div class="btn">
-            <Button ariaLabel={t.index.accountLogin} onclick={redirectToAccount} width={btnWidth}>
-                {t.index.accountLogin}
+<FuncdAuthShell maxWidth="22rem">
+    <div class="stack">
+        <Button ariaLabel={t.index.accountLogin} onclick={redirectToAccount} width="100%">
+            {t.index.accountLogin}
+        </Button>
+        {#if isRegOpen}
+            <Button ariaLabel={t.index.register} level={2} onclick={redirectToReg} width="100%">
+                {t.index.register}
             </Button>
-            {#if isRegOpen}
-                <Button
-                    ariaLabel={t.index.register}
-                    level={2}
-                    onclick={redirectToReg}
-                    width={btnWidth}
-                >
-                    {t.index.register}
-                </Button>
-            {/if}
-            {#if !hideAdminButton}
-                <Button
-                    ariaLabel={t.index.adminLogin}
-                    level={3}
-                    onclick={redirectToAdmin}
-                    width={btnWidth}
-                >
-                    {t.index.adminLogin}
-                </Button>
-            {/if}
-        </div>
-    </ContentCenter>
-
-    <ThemeSwitch absolute />
-    <LangSelector absolute />
-</Main>
+        {/if}
+        {#if !hideAdminButton}
+            <Button ariaLabel={t.index.adminLogin} level={3} onclick={redirectToAdmin} width="100%">
+                {t.index.adminLogin}
+            </Button>
+        {/if}
+    </div>
+</FuncdAuthShell>
 
 <style>
-    .btn {
-        height: 7rem;
+    .stack {
         display: flex;
         flex-direction: column;
-        gap: 0.5rem;
+        gap: 12px;
     }
 </style>

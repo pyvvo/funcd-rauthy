@@ -1,3 +1,11 @@
+<script module lang="ts">
+    // funcd layout: markup and styles of this page are funcd's; the instance
+    // script below is upstream rauthy, unchanged, so rebases only conflict on
+    // markup.
+    import FuncdAuthShell from '$lib5/funcd/FuncdAuthShell.svelte';
+    import FuncdAlert from '$lib5/funcd/FuncdAlert.svelte';
+</script>
+
 <script lang="ts">
     import { onMount } from 'svelte';
     import { redirectToLogin } from '$utils/helpers';
@@ -102,120 +110,85 @@
 
 <Template id={TPL_DEVICE_USER_CODE_LENGTH} bind:value={userCodeLength} />
 
-<Main>
-    <ContentCenter>
-        {#if session}
-            <div class="container">
-                <div class="name">
-                    <h2>{t.device.title}</h2>
+{#if session}
+    <FuncdAuthShell title={t.device.title}>
+        <div class="stack">
+            {#if scopes === undefined}
+                <p>{t.device.desc.replace('{{count}}', userCodeLength.toString())}</p>
+
+                <Input
+                    name="userCode"
+                    autocomplete="off"
+                    label={t.device.userCode}
+                    placeholder={t.device.userCode}
+                    bind:value={userCode}
+                    bind:isError
+                    required
+                    min={userCodeLength.toString()}
+                    max={userCodeLength.toString()}
+                    pattern={PATTERN_ALNUM}
+                    width="100%"
+                />
+
+                <Button onclick={() => onSubmit('pending')} {isLoading} width="100%">
+                    {t.device.submit}
+                </Button>
+            {:else if isAccepted}
+                <FuncdAlert>
+                    <p>{t.device.isAccepted}</p>
+                    <p>{t.device.autoRedirectAccount}</p>
+                </FuncdAlert>
+            {:else if isDeclined}
+                <FuncdAlert color="error">
+                    <p>{t.device.isDeclined}</p>
+                    <p>{t.device.closeWindow}</p>
+                </FuncdAlert>
+            {:else}
+                <div>
+                    <p>{t.device.descScopes}</p>
+                    <ul class="scopes">
+                        {#each scopes as scope}
+                            <li><code>{scope}</code></li>
+                        {/each}
+                    </ul>
                 </div>
 
-                {#if scopes === undefined}
-                    <div class="desc">
-                        {t.device.desc.replace('{{count}}', userCodeLength.toString())}
-                    </div>
+                <div class="actions">
+                    <Button level={-2} onclick={() => onSubmit('decline')} {isLoading} width="100%">
+                        {t.device.decline}
+                    </Button>
+                    <Button onclick={() => onSubmit('accept')} {isLoading} width="100%">
+                        {t.device.accept}
+                    </Button>
+                </div>
+            {/if}
 
-                    <Input
-                        name="userCode"
-                        autocomplete="off"
-                        label={t.device.userCode}
-                        placeholder={t.device.userCode}
-                        bind:value={userCode}
-                        bind:isError
-                        required
-                        min={userCodeLength.toString()}
-                        max={userCodeLength.toString()}
-                        pattern={PATTERN_ALNUM}
-                    />
-
-                    <div class="btn">
-                        <Button onclick={() => onSubmit('pending')} {isLoading}>
-                            {t.device.submit}
-                        </Button>
-                    </div>
-                {:else if isAccepted}
-                    <div class="desc">
-                        <p>{t.device.isAccepted}</p>
-                        <p>{t.device.autoRedirectAccount}</p>
-                    </div>
-                {:else if isDeclined}
-                    <div class="desc">
-                        <p class="declined">{t.device.isDeclined}</p>
-                        <p>{t.device.closeWindow}</p>
-                    </div>
-                {:else}
-                    <div class="desc">
-                        {t.device.descScopes}
-                        <ul>
-                            {#each scopes as scope}
-                                <li>{scope}</li>
-                            {/each}
-                        </ul>
-                    </div>
-
-                    <div class="inline">
-                        <Button onclick={() => onSubmit('accept')} {isLoading}>
-                            {t.device.accept}
-                        </Button>
-                        <Button level={-1} onclick={() => onSubmit('decline')} {isLoading}>
-                            {t.device.decline}
-                        </Button>
-                    </div>
-                {/if}
-
-                <div class="err">{err}</div>
-            </div>
-        {/if}
-
-        <ThemeSwitch absolute />
-        <LangSelector absolute />
-    </ContentCenter>
-</Main>
+            {#if err}
+                <FuncdAlert color="error">{err}</FuncdAlert>
+            {/if}
+        </div>
+    </FuncdAuthShell>
+{/if}
 
 <style>
-    ul {
-        margin-top: 0.5rem;
-    }
-
-    li {
-        margin-left: 1rem;
-    }
-
-    .btn {
-        margin-top: 0.5rem;
-    }
-
-    .container {
+    .stack {
         display: flex;
         flex-direction: column;
-        justify-content: center;
-        max-width: 18rem;
-        padding: 1rem;
-        border: 1px solid hsl(var(--bg-high));
-        border-radius: var(--border-radius);
-        box-shadow: 0.2rem 0.2rem 0.2rem rgba(128, 128, 128, 0.1);
+        gap: 16px;
     }
 
-    .declined {
-        color: hsl(var(--error));
-    }
-
-    .err,
-    .desc {
-        margin: 0 0.33rem 1rem 0.33rem;
-    }
-
-    .err {
-        color: hsl(var(--error));
-    }
-
-    .inline {
-        padding: 0.5rem;
+    .scopes {
+        margin: 8px 0 0;
+        padding: 0;
+        list-style: none;
         display: flex;
-        gap: 0.5rem;
+        flex-wrap: wrap;
+        gap: 6px;
     }
 
-    .name {
-        margin: -10px 5px 0 5px;
+    .actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
     }
 </style>

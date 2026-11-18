@@ -1,3 +1,11 @@
+<script module lang="ts">
+    // funcd layout: markup and styles of this page are funcd's; the instance
+    // script below is upstream rauthy, unchanged, so rebases only conflict on
+    // markup.
+    import FuncdAuthShell from '$lib5/funcd/FuncdAuthShell.svelte';
+    import FuncdAlert from '$lib5/funcd/FuncdAlert.svelte';
+</script>
+
 <script lang="ts">
     import { getCsrfToken, purgeStorage, saveCsrfToken } from '$utils/helpers';
     import Button from '$lib5/button/Button.svelte';
@@ -71,51 +79,33 @@
 
 <Template id={TPL_CSRF_TOKEN} bind:value={csrfToken} />
 
-<Main>
-    <ContentCenter>
-        <div class="container">
-            <h1>{t.logout.logout}</h1>
-            <p>{t.logout.confirmMsg}</p>
-
-            <div class="btn">
-                <Button onclick={handleLogout} {isLoading}>
-                    {t.logout.logout}
-                </Button>
-                <Button level={3} onclick={handleCancel}>
-                    {t.common.cancel}
-                </Button>
-            </div>
-
-            {#if err}
-                <div class:err>
-                    {err}
-                </div>
-            {/if}
+<FuncdAuthShell title={t.logout.logout} subtitle={t.logout.confirmMsg}>
+    <div class="stack">
+        <div class="actions">
+            <Button level={2} onclick={handleCancel} width="100%">
+                {t.common.cancel}
+            </Button>
+            <Button onclick={handleLogout} {isLoading} width="100%">
+                {t.logout.logout}
+            </Button>
         </div>
 
-        <ThemeSwitch absolute />
-        <LangSelector absolute />
-    </ContentCenter>
-</Main>
+        {#if err}
+            <FuncdAlert color="error">{err}</FuncdAlert>
+        {/if}
+    </div>
+</FuncdAuthShell>
 
 <style>
-    .btn {
-        margin-top: 1rem;
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }
-
-    .container {
+    .stack {
         display: flex;
         flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        padding: 1rem;
+        gap: 16px;
     }
 
-    .err {
-        margin-top: 0.66rem;
-        color: hsl(var(--error));
+    .actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
     }
 </style>

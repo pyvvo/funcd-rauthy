@@ -13,20 +13,31 @@ set -euo pipefail
 UPSTREAM="${1:?usage: funcd/check.sh <upstream-tag>}"
 
 pages=(
+    'frontend/src/routes/+page.svelte'
+    'frontend/src/routes/account/+page.svelte'
+    'frontend/src/routes/device/+page.svelte'
     'frontend/src/routes/oidc/authorize/+page.svelte'
+    'frontend/src/routes/oidc/callback/+page.svelte'
+    'frontend/src/routes/oidc/logout/+page.svelte'
+    'frontend/src/routes/providers/callback/+page.svelte'
     'frontend/src/routes/users/register/+page.svelte'
     'frontend/src/routes/users/password_reset/+page.svelte'
     'frontend/src/routes/users/{id}/reset/reset/+page.svelte'
     'frontend/src/routes/users/{id}/email_confirm/email_confirm/+page.svelte'
+    'frontend/src/routes/users/{id}/revoke/revoke/+page.svelte'
+    'frontend/src/lib/Error.svelte'
 )
 
 allow='^(funcd/.*'
 allow+='|frontend/svelte\.config\.js'
+allow+='|frontend/src/app\.html'
 allow+='|frontend/src/css/(funcd|global)\.css'
 allow+='|frontend/src/lib/funcd/.*'
+allow+='|frontend/src/lib/Error\.svelte'
 allow+='|frontend/static/assets/(fonts/.*|favicon\.svg|rauthy_(dark|light)\.svg)'
-allow+='|frontend/src/routes/(oidc/authorize|users/register|users/password_reset'
-allow+='|users/\{id\}/reset/reset|users/\{id\}/email_confirm/email_confirm)/\+page\.svelte'
+allow+='|frontend/src/routes/(account/|device/|oidc/authorize/|oidc/callback/|oidc/logout/'
+allow+='|providers/callback/|users/register/|users/password_reset/|users/\{id\}/reset/reset/'
+allow+='|users/\{id\}/email_confirm/email_confirm/|users/\{id\}/revoke/revoke/)?\+page\.svelte'
 allow+=')$'
 
 fail=0
