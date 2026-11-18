@@ -46,6 +46,22 @@ just build-ui
 cargo build --release
 ```
 
+## Image
+
+`funcd/image/build.sh` builds `ghcr.io/pyvvo/funcd-rauthy:<rauthy version>-funcd.<commit>` the way
+upstream's `just build` does: in a builder container (`funcd/image/builder.Dockerfile`) it builds the UI
+and the release binaries for amd64 and arm64, then wraps them in upstream's distroless runtime image with
+funcd's labels (`funcd/image/Dockerfile`). Run it on a committed tree; it needs a Docker daemon with
+enough memory for the release profile's full LTO (a 16 GiB VM is plenty).
+
+```bash
+DOCKER="docker --context colima-funcd-build" funcd/image/build.sh
+DOCKER="docker --context colima-funcd-build" funcd/image/build.sh --push
+```
+
+Without `--push` it loads the build host's platform into Docker; with it, both platforms go to the
+registry, which needs `docker login ghcr.io` with a token that has `write:packages`.
+
 ## Develop
 
 The backend runs in a container built from `funcd/dev/Dockerfile`, the UI in vite with hot reload.
