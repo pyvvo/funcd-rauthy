@@ -3,8 +3,9 @@
  *
  * Source of truth: funcd-frontend `packages/ui/src/mantine.theme.ts`
  * (primary #6c5ce7 at shade 9, primary-tinted gray/dark neutrals, Roboto,
- * radius scale xs 2 / sm 4 / md 8 / lg 12 / xl 20) and the Mantine defaults it
- * builds on (input sm = 36px, label 14px/500, error red-6 / red-8).
+ * radius scale xs 2 / sm 4 / md 8 / lg 12 / xl 20), its `theme.css` page
+ * background, and the Mantine defaults it builds on (input sm = 36px,
+ * label 14px/500, error red-6 / red-8).
  *
  * 1. Roboto, self-hosted (static/assets/fonts, from @fontsource/roboto).
  * 2. `--fd-*` tokens, light and dark.
@@ -48,7 +49,7 @@ html body,
 html body.theme-light {
     /* funcd tokens */
     --fd-font: 'Roboto', system-ui, -apple-system, 'Segoe UI', sans-serif;
-    --fd-page: #f8f8f8; /* lighten(stone-cold-1, 0.8) */
+    --fd-page: #f5f6fe; /* lighten(primary-1, 0.7): the page of the ui theme (theme.css) and fleet */
     --fd-surface: #ffffff;
     --fd-text: #2a2839; /* gray-9 */
     --fd-text-high: #000000; /* Mantine black */

@@ -19,6 +19,7 @@
         homeHref,
         homeLabel = 'Home',
         maxWidth = '26rem',
+        controls = true,
         children,
         below,
     }: {
@@ -27,6 +28,8 @@
         homeHref?: string;
         homeLabel?: string;
         maxWidth?: string;
+        // false when the page renders its own language/theme controls (the account dashboard)
+        controls?: boolean;
         children: Snippet;
         below?: Snippet;
     } = $props();
@@ -36,21 +39,23 @@
     <header class="header">
         <div class="brand">
             <FuncdLogo size={30} />
-            <FuncdWordmark height={19} />
+            <FuncdWordmark width={88} />
         </div>
-        <div class="featureBar">
-            {#if homeHref}
-                <a class="actionIcon" href={homeHref} aria-label={homeLabel} title={homeLabel}>
-                    <IconHome width="16" opacity={1} />
-                </a>
-            {/if}
-            <div class="lang">
-                <LangSelector openTop={false} />
+        {#if controls}
+            <div class="featureBar">
+                {#if homeHref}
+                    <a class="actionIcon" href={homeHref} aria-label={homeLabel} title={homeLabel}>
+                        <IconHome width="16" opacity={1} />
+                    </a>
+                {/if}
+                <div class="lang">
+                    <LangSelector openTop={false} />
+                </div>
+                <div class="actionIcon theme">
+                    <ThemeSwitch />
+                </div>
             </div>
-            <div class="actionIcon theme">
-                <ThemeSwitch />
-            </div>
-        </div>
+        {/if}
     </header>
 
     <main class="main">
@@ -75,8 +80,10 @@
 
 <style>
     /* ---- shell ---------------------------------------------------------- */
+    /* body is a fixed-height scrolling flex row: take the content's height, at least the viewport */
     .page {
         flex: 1;
+        align-self: flex-start;
         min-height: 100dvh;
         width: 100%;
         display: flex;
@@ -262,6 +269,10 @@
         margin-bottom: 24px;
     }
 
+    .cardHead:last-child {
+        margin-bottom: 0;
+    }
+
     .title {
         margin: 0;
         font-family: var(--fd-font);
@@ -329,7 +340,10 @@
         padding: 0;
     }
 
-    .card :global(input:not([type='checkbox']):not([type='radio']):not([type='hidden'])) {
+    .card
+        :global(
+            input:not([type='checkbox']):not([type='radio']):not([type='hidden']):not([type='file'])
+        ) {
         width: 100%;
         height: 36px;
         margin: 0;
@@ -456,7 +470,10 @@
     /* ---- buttons: rauthy Button levels -> funcd Button variants --------- */
     .card :global(button.l1),
     .card :global(button.l2),
-    .card :global(button.l3) {
+    .card :global(button.l3),
+    .card :global(button.l1d),
+    .card :global(button.l2d),
+    .card :global(button.l3d) {
         height: 36px;
         padding: 0 18px;
         font-family: var(--fd-font);
@@ -475,7 +492,10 @@
 
     .card :global(button.l1:active),
     .card :global(button.l2:active),
-    .card :global(button.l3:active) {
+    .card :global(button.l3:active),
+    .card :global(button.l1d:active),
+    .card :global(button.l2d:active),
+    .card :global(button.l3d:active) {
         transform: scale(0.97);
     }
 
@@ -525,9 +545,44 @@
         outline-color: var(--fd-primary-4);
     }
 
+    /* danger levels (rauthy -1 / -2 / -3): the same variants in Mantine red */
+    .card :global(button.l1d) {
+        color: #ffffff;
+        background: var(--fd-error);
+        border: 1px solid transparent;
+    }
+
+    .card :global(button.l1d:hover) {
+        box-shadow: none;
+        background: color-mix(in srgb, var(--fd-error) 85%, #ffffff);
+        outline-color: color-mix(in srgb, var(--fd-error) 85%, #ffffff);
+    }
+
+    .card :global(button.l2d) {
+        color: var(--fd-error);
+        background: transparent;
+        border: 1px solid var(--fd-error);
+    }
+
+    .card :global(button.l2d:hover),
+    .card :global(button.l3d:hover) {
+        box-shadow: none;
+        background: var(--fd-error-soft);
+        outline-color: transparent;
+    }
+
+    .card :global(button.l3d) {
+        color: var(--fd-error);
+        background: transparent;
+        border: 1px solid transparent;
+    }
+
     .card :global(button.l1[aria-disabled='true']),
     .card :global(button.l2[aria-disabled='true']),
-    .card :global(button.l3[aria-disabled='true']) {
+    .card :global(button.l3[aria-disabled='true']),
+    .card :global(button.l1d[aria-disabled='true']),
+    .card :global(button.l2d[aria-disabled='true']),
+    .card :global(button.l3d[aria-disabled='true']) {
         color: var(--fd-disabled-fg);
         background: var(--fd-disabled-bg);
         border-color: transparent;
