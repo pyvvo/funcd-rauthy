@@ -14,8 +14,13 @@ rauthy with every user-facing page in funcd's look. The `funcd-ui` branch is an 
   activation, e-mail change confirmation, home, logout, device authorization, login revoke, the error
   pages (`lib/Error.svelte`), the OIDC and upstream-provider callbacks, and the account dashboard. The
   dashboard is restyled from its route, so `lib/account` stays upstream's.
+- **E-mails**: `templates/email/base.html` frames every mail in funcd's look (page tint, white card,
+  primary buttons) with the values written out, since mail clients drop CSS variables, so the client
+  theme rauthy passes in is not used. The funcd lockup is a PNG served from the issuer
+  (`<issuer>assets/funcd-email.png`); a mail client that cannot reach the issuer shows its alt text.
+  The subject and heading prefix and the sender name are config: set `EMAIL_SUB_PREFIX` and `SMTP_FROM`.
 - **Left as upstream**: the admin UI (layout kept, colors remapped), the FedCM test page, the backend's
-  plain 429 and "blocked" pages, and the e-mails (backend templates, themed server-side).
+  plain 429 and "blocked" pages, and the admin's custom mails (their own inline HTML).
 
 Each page keeps upstream's instance `<script>` byte-identical; funcd's imports sit in a separate
 `<script module>`. Auth logic is never forked, and a rebase conflicts only on markup.
@@ -55,7 +60,8 @@ docker run -d --name rauthy-dev --network rauthy-net -p 8080:8080 -e SMTP_URL=ma
 cd frontend && npm ci && npm run dev
 ```
 
-Open `http://localhost:5173/auth/v1/account`; the dev admin is in `config.toml`. Vite proxies
+Open `http://localhost:5173/auth/v1/account`; the dev admin is in `config.toml`, and mailpit shows the
+mails at `http://localhost:8025`. Vite proxies
 `/auth/v1/dev` by prefix, so `/auth/v1/device` comes from the backend's build: run `just build-ui`
 and rebuild the backend to see a change there.
 

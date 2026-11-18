@@ -3,105 +3,127 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="color-scheme" content="light only"/>
+    <meta name="supported-color-schemes" content="light"/>
     <title>{% block title %}{% endblock %}</title>
+    <!--
+    funcd layout: funcd-frontend's light values written out, since mail clients drop CSS
+    variables (so the client theme in theme_vars is not used here); a table frame, which
+    Outlook needs; and the funcd lockup as a PNG served from this issuer's assets, since
+    Gmail and Outlook drop inline SVG.
+    -->
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #f5f6fe;
+        }
+
+        .fd-body {
+            font-family: Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.55;
+            color: #2a2839;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .fd-card h1,
+        .fd-card h2 {
+            margin: 0 0 16px;
+            font-size: 22px;
+            line-height: 1.3;
+            font-weight: 700;
+            color: #000000;
+            overflow-wrap: break-word;
+        }
+
+        .fd-card h2 {
+            font-size: 18px;
+        }
+
+        .fd-card p {
+            margin: 0 0 12px;
+        }
+
+        .fd-card b {
+            color: #000000;
+        }
+
+        .fd-card a,
+        .fd-card a:link,
+        .fd-card a:visited {
+            display: inline-block;
+            margin: 8px 0 0;
+            padding: 9px 18px;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 18px;
+            color: #ffffff;
+            background: #6c5ce7;
+            border: 1px solid #6c5ce7;
+            border-radius: 12px;
+            text-decoration: none;
+        }
+
+        .fd-card footer {
+            font-size: 13px;
+            color: #838290;
+        }
+
+        .fd-card footer p {
+            margin: 24px 0 12px;
+            padding-top: 16px;
+            border-top: 1px solid #e3e2e9;
+        }
+
+        .fd-card .err {
+            color: #fa5252;
+        }
+
+        .fd-card .font-mono {
+            font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
+        }
+
+        .fd-card .otp {
+            margin: 8px 0 0;
+            font-size: 32px;
+            letter-spacing: 4px;
+            color: #000000;
+        }
+    </style>
+    <!-- a separate block: a client that rejects these selectors drops only these rules -->
+    <style>
+        .fd-card a[data-faded="true"] {
+            color: #6c5ce7;
+            background: #ffffff;
+        }
+
+        .fd-card footer p:empty {
+            display: none;
+        }
+    </style>
 </head>
-<style>
-    *, *::before, *::after {
-        box-sizing: border-box;
-    }
-
-    * {
-        margin: 0;
-        padding: 0;
-    }
-
-    ::selection {
-        color: hsl(var(--bg));
-        background: hsl(var(--action));
-    }
-
-    input, button, textarea, select {
-        font: inherit;
-    }
-
-    body {
-        padding: 1rem;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Roboto', 'Segoe UI', 'Oxygen',
-        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-        -webkit-font-smoothing: antialiased;
-        line-height: 1.5rem;
-        color: hsl(var(--text));
-        /* necessary to fix some email clients' dark mode */
-        background-color: transparent !important;
-        scroll-behavior: smooth;
-        scrollbar-gutter: stable;
-        overflow: auto;
-    {{ theme_vars }}
-    }
-
-    a, a:link, a:visited {
-        padding: .25rem .5rem;
-        color: var(--btn-text);
-        transition: all 150ms ease-in-out;
-        background: hsl(var(--action));
-        border-radius: var(--border-radius);
-        font-weight: bold;
-        cursor: pointer;
-        text-decoration: none;
-    }
-
-    a:hover, a:active {
-        color: var(--btn-text);
-        box-shadow: 1px 1px 2px hsl(var(--bg-high));
-    }
-
-    a[data-faded="true"] {
-        border: 1px solid hsl(var(--action));
-        color: hsl(var(--action));
-        background-color: hsl(var(--bg));
-    }
-
-    footer {
-        margin-top: 1.25rem;
-    }
-
-    h1, h2, h3, h4, h5, h6 {
-        color: hsl(var(--text-high));
-        overflow-wrap: break-word;
-    }
-
-    h1 {
-        font-size: 1.25rem;
-    }
-
-    h2 {
-        font-size: 1.15rem;
-    }
-
-    p {
-        margin: .5rem 0;
-        max-width: 467pt;
-    }
-
-    .err {
-        color: hsl(var(--error));
-    }
-
-    .font-label {
-        font-family: ui-rounded, 'Hiragino Maru Gothic ProN', Quicksand, Comfortaa, Manjari, 'Arial Rounded MT',
-        'Arial Rounded MT Bold', Calibri, source-sans-pro, sans-serif;
-    }
-
-    .font-mono {
-        font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas,
-        'DejaVu Sans Mono', monospace;
-    }
-
-    .otp {
-        font-size: 2.5em;
-    }
-</style>
 <body>
-{% block content %}<p>Placeholder content</p>{% endblock %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background: #f5f6fe;">
+    <tr>
+        <td align="center" style="padding: 32px 16px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="fd-body"
+                   style="max-width: 520px;">
+                <tr>
+                    <td style="padding: 0 0 20px 4px;">
+                        <img src="{{ crate::rauthy_config::RauthyConfig::get().issuer }}assets/funcd-email.png"
+                             width="128" height="30" alt="funcd" style="display: block; border: 0;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="fd-card"
+                        style="padding: 32px; background: #ffffff; border-radius: 20px; box-shadow: -1px 1px 10px -1px rgba(0, 0, 0, 0.103);">
+                        {% block content %}<p>Placeholder content</p>{% endblock %}
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
 </body>
 </html>
