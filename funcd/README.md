@@ -79,6 +79,12 @@ npm ci
 npm run build
 ```
 
+The logo is `funcd/email/logo.svg` (funcd-frontend's mark and wordmark), rendered at 3x into
+`frontend/static/assets/funcd-email.png` (`resvg --zoom 3 funcd/email/logo.svg <png>`). It carries a
+thin white halo: in dark mode, Outlook turns the mail's backgrounds grey but never recolors images, so a
+plain black logo drops to about 2.8:1 contrast there (checked in Outlook.com on 2026-11-18); on the
+light tint the halo does not show.
+
 Fields that can be empty are wrapped in `<mj-raw>{%- if !field.is_empty() -%}</mj-raw>`, so they leave
 no gap. The text mails (`*.txt`) and `base.html` stay upstream's; no funcd mail extends `base.html`.
 When upstream changes a mail, port the change to its `.mjml` file: the backend build then checks every
