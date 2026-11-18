@@ -1,3 +1,6 @@
+/* funcd: design tokens, fonts and the remap of every rauthy theme variable */
+@import "./funcd.css";
+
 /* CSS Reset */
 *,
 *::before,

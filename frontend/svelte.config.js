@@ -34,6 +34,8 @@ const config = {
                 'script-src': ['self', 'wasm-unsafe-eval'],
                 'style-src': ['self', 'unsafe-inline'],
                 'img-src': ['self'],
+                // funcd: self-hosted Roboto (static/assets/fonts)
+                'font-src': ['self'],
             },
         },
         env: {
