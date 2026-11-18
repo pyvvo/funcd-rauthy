@@ -31,6 +31,7 @@ pages=(
 )
 
 allow='^(funcd/.*'
+allow+='|\.github/workflows/funcd-[a-z-]+\.yml'
 allow+='|frontend/svelte\.config\.js'
 allow+='|frontend/src/app\.html'
 allow+='|frontend/src/css/(funcd|global)\.css'
