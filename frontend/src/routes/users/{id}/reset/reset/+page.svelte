@@ -1,3 +1,12 @@
+<script module lang="ts">
+    // funcd layout: markup and styles of this page are funcd's; the instance
+    // script below is upstream rauthy, unchanged, so rebases only conflict on
+    // markup.
+    import FuncdAuthShell from '$lib5/funcd/FuncdAuthShell.svelte';
+    import FuncdAlert from '$lib5/funcd/FuncdAlert.svelte';
+    import FuncdPills from '$lib5/funcd/FuncdPills.svelte';
+</script>
+
 <script lang="ts">
     import { generatePassword, normalizeClientUri } from '$utils/helpers';
     import Button from '$lib5/button/Button.svelte';
@@ -234,42 +243,41 @@
 {#snippet passwordInput()}
     {#if tplData}
         <Form action="" onSubmit={passwordReset}>
-            <div class="policy">
+            <div class="stack">
                 <PasswordPolicy bind:accepted policy={tplData.password_policy} {password} />
+
+                <InputPassword
+                    bind:ref={refPassword}
+                    bind:value={password}
+                    autocomplete="new-password"
+                    label={t.account.passwordNew}
+                    placeholder={t.account.passwordNew}
+                    maxLength={tplData.password_policy.length_max}
+                    required
+                    bind:reportValidity={reportValidityNew}
+                    showCopy={password.length >= tplData.password_policy.length_min}
+                    width="100%"
+                />
+                <InputPassword
+                    bind:value={passwordConfirm}
+                    autocomplete="new-password"
+                    label={t.account.passwordConfirm}
+                    placeholder={t.account.passwordConfirm}
+                    maxLength={tplData.password_policy.length_max}
+                    bind:reportValidity={reportValidityConfirm}
+                    required
+                    width="100%"
+                />
+
+                <div class="actions">
+                    <Button level={2} onclick={generate}>
+                        {t.passwordReset.generate}
+                    </Button>
+                    <Button type="submit" {isLoading}>
+                        {t.common.save}
+                    </Button>
+                </div>
             </div>
-
-            <InputPassword
-                bind:ref={refPassword}
-                bind:value={password}
-                autocomplete="new-password"
-                label={t.account.passwordNew}
-                placeholder={t.account.passwordNew}
-                maxLength={tplData.password_policy.length_max}
-                required
-                bind:reportValidity={reportValidityNew}
-                showCopy={password.length >= tplData.password_policy.length_min}
-                width={inputWidth}
-            />
-            <InputPassword
-                bind:value={passwordConfirm}
-                autocomplete="new-password"
-                label={t.account.passwordConfirm}
-                placeholder={t.account.passwordConfirm}
-                maxLength={tplData.password_policy.length_max}
-                bind:reportValidity={reportValidityConfirm}
-                required
-                width={inputWidth}
-            />
-
-            <div class="generate">
-                <Button level={2} onclick={generate}>
-                    {t.passwordReset.generate}
-                </Button>
-            </div>
-
-            <Button type="submit" {isLoading}>
-                {t.common.save}
-            </Button>
         </Form>
     {/if}
 {/snippet}
@@ -285,156 +293,146 @@
     </div>
 {/if}
 
-<Main>
-    <ContentCenter>
-        {#if mfaPurpose && tplData}
-            <WebauthnRequest
-                purpose={mfaPurpose}
-                resetUserId={tplData.user_id}
-                onSuccess={onWebauthnSuccess}
-                onError={onWebauthnError}
-            />
-        {/if}
+{#if mfaPurpose && tplData}
+    <WebauthnRequest
+        purpose={mfaPurpose}
+        resetUserId={tplData.user_id}
+        onSuccess={onWebauthnSuccess}
+        onError={onWebauthnError}
+    />
+{/if}
 
-        {#if success}
-            <p>
-                {t.passwordReset.success1}
-                <br />
-                {t.passwordReset.success2}
-                <br />
-                <br />
+<FuncdAuthShell
+    title={tplData || success
+        ? requestType.get()?.startsWith('new_user')
+            ? t.passwordReset.newAccount
+            : t.passwordReset.passwordReset
+        : undefined}
+    subtitle={tplData && !success && requestType.get()?.startsWith('new_user')
+        ? t.passwordReset.newAccDesc1
+        : undefined}
+    homeHref={redirectUri ? normalizeClientUri(redirectUri) : undefined}
+>
+    {#if success}
+        <FuncdAlert title={t.passwordReset.success1}>
+            <p>{t.passwordReset.success2}</p>
+            <p class="successLink">
                 {t.passwordReset.success3}
                 <A href={redirectUri ? normalizeClientUri(redirectUri) : '/auth/v1/account'}>
                     Account
                 </A>
             </p>
-        {:else if tplData}
-            <div class="container">
-                <div>
-                    {#if requestType.get()?.startsWith('new_user')}
-                        <h1>{t.passwordReset.newAccount}</h1>
-                        <p>{t.passwordReset.newAccDesc1}</p>
-                        <p>
-                            {t.passwordReset.newAccDesc2}
-                            <A href={t.passwordReset.fidoLink} target="_blank">FIDO Alliance</A>
-                        </p>
+        </FuncdAlert>
+    {:else if tplData}
+        {#if requestType.get()?.startsWith('new_user')}
+            <div class="stack">
+                <FuncdPills
+                    options={[
+                        { value: 'passkey', label: t.passwordReset.passwordless },
+                        { value: 'password', label: t.passwordReset.password },
+                    ]}
+                    value={accountTypeNew}
+                    disabled={isLoading}
+                    onSelect={v => (accountTypeNew = v)}
+                />
 
-                        <div class="typeChoice">
-                            <Button
-                                level={!accountTypeNew ? 1 : 3}
-                                onclick={() => (accountTypeNew = 'passkey')}
-                                {isLoading}
-                            >
-                                {t.passwordReset.passwordless}
-                            </Button>
-                            <Button
-                                level={!accountTypeNew ? 2 : 3}
-                                onclick={() => (accountTypeNew = 'password')}
-                                {isLoading}
-                            >
-                                {t.passwordReset.password}
-                            </Button>
-                        </div>
+                {#if accountTypeNew !== 'password'}
+                    <p class="hint">
+                        {t.passwordReset.newAccDesc2}
+                        <A href={t.passwordReset.fidoLink} target="_blank">FIDO Alliance</A>
+                    </p>
+                {/if}
 
-                        {#if accountTypeNew === 'password'}
-                            <div transition:slide>
-                                {@render passwordInput()}
+                {#if accountTypeNew === 'password'}
+                    <div transition:slide>
+                        {@render passwordInput()}
+                    </div>
+                {:else if accountTypeNew === 'passkey'}
+                    <div transition:slide>
+                        <Form action="" onSubmit={handleRegister}>
+                            <div class="stack">
+                                <PasskeyTypeSelect bind:residentKey />
+                                <Input
+                                    bind:ref={refPasskey}
+                                    bind:value={passkeyName}
+                                    autocomplete="off"
+                                    label={t.mfa.passkeyName}
+                                    placeholder={t.mfa.passkeyName}
+                                    width="100%"
+                                    maxLength={32}
+                                    pattern={PATTERN_USER_NAME}
+                                    required
+                                />
+                                <Button type="submit" level={success ? 2 : 1} width="100%">
+                                    {t.mfa.register}
+                                </Button>
                             </div>
-                        {:else if accountTypeNew === 'passkey'}
-                            <div transition:slide>
-                                <Form action="" onSubmit={handleRegister}>
-                                    <PasskeyTypeSelect bind:residentKey />
-                                    <Input
-                                        bind:ref={refPasskey}
-                                        bind:value={passkeyName}
-                                        autocomplete="off"
-                                        label={t.mfa.passkeyName}
-                                        placeholder={t.mfa.passkeyName}
-                                        width={inputWidth}
-                                        maxLength={32}
-                                        pattern={PATTERN_USER_NAME}
-                                        required
-                                    />
-                                    <div class="btnReg">
-                                        <Button type="submit" level={success ? 2 : 1}>
-                                            {t.mfa.register}
-                                        </Button>
-                                    </div>
-                                </Form>
+                        </Form>
 
-                                {#if success}
-                                    <div class="success">
-                                        <p>{t.passwordReset.successPasskey1}</p>
-                                        <p>{t.passwordReset.successPasskey2}</p>
-                                        <Button onclick={navigateToAccount}>
-                                            {t.passwordReset.accountLogin}
-                                        </Button>
-                                    </div>
-                                {/if}
+                        {#if success}
+                            <div class="feedback">
+                                <FuncdAlert title={t.passwordReset.successPasskey1}>
+                                    <p>{t.passwordReset.successPasskey2}</p>
+                                </FuncdAlert>
+                                <Button onclick={navigateToAccount} width="100%">
+                                    {t.passwordReset.accountLogin}
+                                </Button>
                             </div>
                         {/if}
-                    {:else if requestType.get()?.startsWith('password_reset')}
-                        <h1>Password Reset</h1>
-                        {@render passwordInput()}
-                    {/if}
-
-                    {#if err}
-                        <div class="err">
-                            {err}
-                        </div>
-                    {/if}
-                </div>
+                    </div>
+                {/if}
             </div>
+        {:else if requestType.get()?.startsWith('password_reset')}
+            {@render passwordInput()}
         {/if}
 
-        <ThemeSwitch absolute />
-    </ContentCenter>
-</Main>
-
-<LangSelector absolute />
+        {#if err}
+            <div class="feedback">
+                <FuncdAlert color="error">{err}</FuncdAlert>
+            </div>
+        {/if}
+    {/if}
+</FuncdAuthShell>
 
 <style>
-    .btnReg {
-        margin-top: 1rem;
-    }
-
-    .container {
-        margin-top: -1.75rem;
-        max-height: calc(100dvh - 2.5rem);
-        width: 100dvw;
+    .stack {
         display: flex;
         flex-direction: column;
-        align-items: center;
-        overflow-y: auto;
+        gap: 16px;
     }
 
-    .err {
-        margin-top: 0.5rem;
-        max-width: 20rem;
-        color: hsl(var(--error));
+    .actions {
+        margin-top: 4px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .hint {
+        font-size: 12.5px;
+        line-height: 1.5;
+        color: var(--fd-dimmed);
+    }
+
+    .feedback {
+        margin-top: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .successLink {
+        margin-top: 8px;
     }
 
     .dev {
         position: absolute;
-        top: 0.5rem;
-        right: 0.5rem;
-        padding: 0.5rem;
-        border-radius: var(--border-radius);
-        background: hsl(var(--bg-high));
-    }
-
-    .generate {
-        margin-bottom: 0.66rem;
-    }
-
-    .policy {
-        max-width: 100dvw;
-        overflow: clip;
-    }
-
-    .typeChoice {
-        margin-bottom: 1rem;
-        display: flex;
-        gap: 0.5rem;
+        top: 80px;
+        right: 12px;
+        z-index: 200;
+        padding: 12px;
+        border-radius: var(--fd-radius-md);
+        background: var(--fd-surface);
+        box-shadow: var(--fd-shadow-bar);
     }
 </style>

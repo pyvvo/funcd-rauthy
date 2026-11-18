@@ -1,3 +1,12 @@
+<script module lang="ts">
+    // funcd layout: markup and styles of this page are funcd's; the instance
+    // script below is upstream rauthy, unchanged, so rebases only conflict on
+    // markup.
+    import FuncdAuthShell from '$lib5/funcd/FuncdAuthShell.svelte';
+    import FuncdAlert from '$lib5/funcd/FuncdAlert.svelte';
+    import FuncdDivider from '$lib5/funcd/FuncdDivider.svelte';
+</script>
+
 <script lang="ts">
     import { formatDateFromTs, normalizeClientUri, saveCsrfToken } from '$utils/helpers';
     import Button from '$lib5/button/Button.svelte';
@@ -596,355 +605,257 @@
 <Template id={TPL_IS_REG_OPEN} bind:value={isRegOpen} />
 <Template id={TPL_PASSKEY_REG_TYPE} bind:value={passkeyRegType} />
 
-<Main>
-    {#if isAutoRefreshing}
-        <div class="loadingGlobal">
-            <Loading global />
+{#if isAutoRefreshing}
+    <div class="loadingGlobal">
+        <Loading global />
+    </div>
+{/if}
+
+<FuncdAuthShell
+    title={t.authorize.login}
+    subtitle={clientName || clientId}
+    homeHref={clientUriNormalized || undefined}
+    homeLabel="Client Home Page"
+>
+    {#if mfaPurpose}
+        {#if mfaKind == 'webauthn'}
+            <WebauthnRequest purpose={mfaPurpose} onSuccess={onMfaSuccess} onError={onMfaError} />
+        {:else if mfaKind == 'otp' && activeOtps}
+            <OtpRequest
+                {activeOtps}
+                purpose={mfaPurpose}
+                onSuccess={onMfaSuccess}
+                onError={onMfaError}
+            />
+        {/if}
+    {/if}
+
+    {#if !clientMfaForce}
+        <Form action={authorizeUrl} {onSubmit}>
+            <div class="stack">
+                {#if isAtproto}
+                    <Input
+                        name="handle"
+                        bind:value={atprotoHandle}
+                        label="Handle / DID"
+                        placeholder="Handle / DID"
+                        pattern={PATTERN_ATPROTO_ID}
+                        disabled={tooManyRequests}
+                        width="100%"
+                        required
+                    />
+                {:else}
+                    <Input
+                        typ="email"
+                        name="email"
+                        bind:value={email}
+                        autocomplete="email"
+                        label={t.common.email}
+                        placeholder={t.common.email}
+                        errMsg={t.authorize.validEmail}
+                        disabled={tooManyRequests || clientMfaForce || isLoading}
+                        onInput={onEmailInput}
+                        width="100%"
+                        required
+                    />
+                {/if}
+
+                {#if showPasswordInput}
+                    <div class="password">
+                        <InputPassword
+                            bind:ref={refPassword}
+                            name="password"
+                            bind:value={password}
+                            autocomplete="current-password"
+                            label={t.common.password}
+                            placeholder={t.common.password}
+                            maxLength={256}
+                            disabled={tooManyRequests || clientMfaForce || isLoading}
+                            width="100%"
+                            required
+                        />
+                        {#if showResetRequest && !tooManyRequests}
+                            <button
+                                type="button"
+                                class="link"
+                                aria-label={t.authorize.passwordForgotten}
+                                onclick={handleShowReset}
+                            >
+                                {t.authorize.passwordForgotten}
+                            </button>
+                        {/if}
+                    </div>
+                {:else}
+                    <!-- This only exists to help password managers to trigger an auto-fill  -->
+                    <input type="password" hidden aria-hidden="true" style:display="none" />
+                {/if}
+
+                {#if !tooManyRequests && !clientMfaForce}
+                    {#if showReset && !isAtproto}
+                        <Button
+                            ariaLabel={t.authorize.passwordRequest}
+                            onclick={requestReset}
+                            width="100%"
+                        >
+                            {t.authorize.passwordRequest}
+                        </Button>
+                    {:else}
+                        <Button
+                            type="submit"
+                            ariaLabel={t.authorize.login}
+                            onclick={() => onSubmit()}
+                            isDisabled={email.length === 0}
+                            {isLoading}
+                            width="100%"
+                        >
+                            {t.authorize.login}
+                        </Button>
+                        {#if isAtproto}
+                            <Button
+                                ariaLabel={t.common.cancel}
+                                level={2}
+                                onclick={toggleAtproto}
+                                width="100%"
+                            >
+                                {t.common.cancel}
+                            </Button>
+                        {/if}
+                    {/if}
+                {/if}
+            </div>
+        </Form>
+    {/if}
+
+    {#if err}
+        <div class="feedback">
+            <FuncdAlert color="error">
+                {err}
+                {#if err === passkeyDiscoverErr}
+                    <p class="detail">{t.authorize.passkeyNotDiscovered}</p>
+                {/if}
+            </FuncdAlert>
         </div>
     {/if}
-    <div class="outer">
-        <ContentCenter>
-            <div class="container">
-                <div class="head">
-                    {#if clientId}
-                        <ClientLogo
-                            {clientId}
-                            updated={clientLogoUpdated > -1 ? clientLogoUpdated : undefined}
-                        />
-                    {/if}
-                    {#if clientUriNormalized}
-                        <a class="home" href={clientUriNormalized} aria-label="Client Home Page">
-                            <IconHome color="hsla(var(--text) / .9)" />
-                        </a>
-                    {/if}
-                </div>
 
-                <div class="name">
-                    <h2>{clientName || clientId}</h2>
-                </div>
+    {#if emailSuccess}
+        <div class="feedback">
+            <FuncdAlert>{t.authorize.emailSentMsg}</FuncdAlert>
+        </div>
+    {/if}
 
-                {#if mfaPurpose}
-                    <!--
-                    TODO we could pass in an optional loginCodeExp and make sure
-                    it fits inside the exp returned inside the WebauthnRequest later on
-                    to output proper logs in case of misconfiguration.
-                    Another approach would be to check this in the backend and emit warning logs.
-                    -->
-                    {#if mfaKind == 'webauthn'}
-                        <WebauthnRequest
-                            purpose={mfaPurpose}
-                            onSuccess={onMfaSuccess}
-                            onError={onMfaError}
-                        />
-                    {:else if mfaKind == 'otp' && activeOtps}
-                        <OtpRequest
-                            {activeOtps}
-                            purpose={mfaPurpose}
-                            onSuccess={onMfaSuccess}
-                            onError={onMfaError}
-                        />
-                    {/if}
-                {/if}
+    {#if clientMfaForce}
+        <div class="feedback">
+            <Button
+                ariaLabel="Account"
+                onclick={() => (window.location.href = '/auth/v1/account')}
+                width="100%"
+            >
+                Account
+            </Button>
+        </div>
+    {/if}
 
-                {#if !clientMfaForce}
-                    <Form action={authorizeUrl} {onSubmit}>
-                        <div class:emailMinHeight={!showPasswordInput}>
-                            {#if isAtproto}
-                                <Input
-                                    name="handle"
-                                    bind:value={atprotoHandle}
-                                    label="Handle / DID"
-                                    placeholder="Handle / DID"
-                                    pattern={PATTERN_ATPROTO_ID}
-                                    disabled={tooManyRequests}
-                                    width={inputWidth}
-                                    required
-                                />
-                            {:else}
-                                <Input
-                                    typ="email"
-                                    name="email"
-                                    bind:value={email}
-                                    autocomplete="email"
-                                    label={t.common.email}
-                                    placeholder={t.common.email}
-                                    errMsg={t.authorize.validEmail}
-                                    disabled={tooManyRequests || clientMfaForce || isLoading}
-                                    onInput={onEmailInput}
-                                    width={inputWidth}
-                                    required
-                                />
-                            {/if}
-                        </div>
+    {#if tos}
+        <TosAccept {tos} {tosAcceptCode} onToSAccept={handleAuthRes} {onToSCancel} />
+    {/if}
 
-                        {#if showPasswordInput}
-                            <InputPassword
-                                bind:ref={refPassword}
-                                name="password"
-                                bind:value={password}
-                                autocomplete="current-password"
-                                label={t.common.password}
-                                placeholder={t.common.password}
-                                maxLength={256}
-                                disabled={tooManyRequests || clientMfaForce || isLoading}
-                                width={inputWidth}
-                                required
-                            />
+    {#if !showReset && !clientMfaForce && !isAtproto && hasLoginAlternatives}
+        <FuncdDivider label={t.authorize.orLoginWith} />
+        <div class="alternatives">
+            {#if isPasskeyDiscoverable}
+                <Button
+                    level={2}
+                    ariaLabel={t.authorize.login}
+                    onclick={onPasskeyDiscover}
+                    {isLoading}
+                    width="100%"
+                >
+                    <IconKey width="16px" />
+                    Passkey
+                </Button>
+            {/if}
 
-                            {#if showResetRequest && !tooManyRequests}
-                                <div class="forgotten">
-                                    <Button
-                                        ariaLabel={t.authorize.passwordForgotten}
-                                        invisible
-                                        onclick={handleShowReset}
-                                    >
-                                        {t.authorize.passwordForgotten}
-                                    </Button>
-                                </div>
-                            {/if}
-                        {:else}
-                            <!-- This only exists to help password managers to trigger an auto-fill  -->
-                            <input type="password" hidden aria-hidden="true" style:display="none" />
-                        {/if}
+            {#each providers as provider (provider.id)}
+                <ButtonAuthProvider
+                    ariaLabel={`Login: ${provider.name}`}
+                    {provider}
+                    onclick={isProviderAtProto(provider.id) ? toggleAtproto : providerLogin}
+                    {isLoading}
+                />
+            {/each}
+        </div>
+    {/if}
 
-                        {#if !tooManyRequests && !clientMfaForce}
-                            {#if showReset && !isAtproto}
-                                <div class="btn flex-col">
-                                    <Button
-                                        ariaLabel={t.authorize.passwordRequest}
-                                        onclick={requestReset}
-                                    >
-                                        {t.authorize.passwordRequest}
-                                    </Button>
-                                </div>
-                            {:else}
-                                <div class="btn flex-col">
-                                    <Button
-                                        type="submit"
-                                        ariaLabel={t.authorize.login}
-                                        onclick={() => onSubmit()}
-                                        isDisabled={email.length === 0}
-                                        {isLoading}
-                                    >
-                                        {t.authorize.login}
-                                    </Button>
-                                </div>
-                                {#if isAtproto}
-                                    <div class="btn flex-col">
-                                        <Button
-                                            ariaLabel={t.common.cancel}
-                                            level={2}
-                                            onclick={toggleAtproto}
-                                        >
-                                            {t.common.cancel}
-                                        </Button>
-                                    </div>
-                                {/if}
-                            {/if}
-                        {/if}
-                    </Form>
+    <Modal bind:showModal={showModalUpdate} strict>
+        <p>{t.authorize.needsUserUpdate}</p>
+        <Button onclick={() => window.location.replace('/auth/v1/account')}>
+            {t.authorize.navigateToAccount}
+        </Button>
+    </Modal>
 
-                    {#if isRegOpen && !showResetRequest && !tooManyRequests && !isAtproto}
-                        {#if clientUri}
-                            <a
-                                class="reg"
-                                href="/auth/v1/users/register?redirect_uri={clientUri}"
-                                target="_blank"
-                            >
-                                {t.authorize.signUp}
-                            </a>
-                        {:else}
-                            <a class="reg" href="/auth/v1/users/register" target="_blank">
-                                {t.authorize.signUp}
-                            </a>
-                        {/if}
-                    {/if}
-                {/if}
-
-                {#if err}
-                    <div class="errMsg">
-                        {err}
-                    </div>
-                    {#if err === passkeyDiscoverErr}
-                        <div class="errMsg">
-                            {t.authorize.passkeyNotDiscovered}
-                        </div>
-                    {/if}
-                {/if}
-
-                {#if emailSuccess}
-                    <div class="success">
-                        {t.authorize.emailSentMsg}
-                    </div>
-                {/if}
-
-                {#if clientMfaForce}
-                    <div class="btn flex-col">
-                        <Button
-                            ariaLabel="Account"
-                            onclick={() => (window.location.href = '/auth/v1/account')}
-                        >
-                            Account
-                        </Button>
-                    </div>
-                {/if}
-
-                {#if tos}
-                    <TosAccept {tos} {tosAcceptCode} onToSAccept={handleAuthRes} {onToSCancel} />
-                {/if}
-
-                {#if !showReset && !clientMfaForce && !isAtproto && hasLoginAlternatives}
-                    <div class="providers flex-col gap-05">
-                        <div class="providersSeparator">
-                            <div class="separator"></div>
-                            <div class="loginWith">
-                                <div>
-                                    {t.authorize.orLoginWith}
-                                </div>
-                            </div>
-                        </div>
-
-                        {#if isPasskeyDiscoverable}
-                            <div class="btn flex-col">
-                                <Button
-                                    level={2}
-                                    ariaLabel={t.authorize.login}
-                                    onclick={onPasskeyDiscover}
-                                    {isLoading}
-                                >
-                                    <div class="flex gap-05">
-                                        <IconKey width="1.2rem" />
-                                        Passkey
-                                    </div>
-                                </Button>
-                            </div>
-                        {/if}
-
-                        {#each providers as provider (provider.id)}
-                            <ButtonAuthProvider
-                                ariaLabel={`Login: ${provider.name}`}
-                                {provider}
-                                onclick={isProviderAtProto(provider.id)
-                                    ? toggleAtproto
-                                    : providerLogin}
-                                {isLoading}
-                            />
-                        {/each}
-                    </div>
-                {/if}
-
-                <Modal bind:showModal={showModalUpdate} strict>
-                    <p>{t.authorize.needsUserUpdate}</p>
-                    <Button onclick={() => window.location.replace('/auth/v1/account')}>
-                        {t.authorize.navigateToAccount}
-                    </Button>
-                </Modal>
-            </div>
-
-            <ThemeSwitch absolute />
-            <LangSelector absolute borderless />
-        </ContentCenter>
-    </div>
-</Main>
+    {#snippet below()}
+        {#if !clientMfaForce && isRegOpen && !showResetRequest && !tooManyRequests && !isAtproto}
+            {#if clientUri}
+                <a href="/auth/v1/users/register?redirect_uri={clientUri}" target="_blank">
+                    {t.authorize.signUp}
+                </a>
+            {:else}
+                <a href="/auth/v1/users/register" target="_blank">
+                    {t.authorize.signUp}
+                </a>
+            {/if}
+        {/if}
+    {/snippet}
+</FuncdAuthShell>
 
 <style>
     .loadingGlobal {
         width: 100dvw;
         height: 100dvh;
-        position: absolute;
-        background-color: hsla(var(--bg) / 0.85);
-        z-index: 99;
+        position: fixed;
+        inset: 0;
+        z-index: 999;
+        background-color: color-mix(in srgb, var(--fd-page) 85%, transparent);
     }
 
-    .btn {
-        margin: 0.8rem 0 0.5rem 0;
-        display: flex;
-    }
-
-    .outer {
-        width: 100dvw;
-        height: 100dvh;
-        background: hsla(var(--bg-high) / 0.25);
-    }
-
-    .container {
+    .stack {
         display: flex;
         flex-direction: column;
-        justify-content: center;
-        max-width: 21rem;
-        padding: 20px;
-        border-radius: var(--border-radius);
-        border: 1px solid hsl(var(--bg-high));
-        background: hsl(var(--bg));
+        gap: 16px;
     }
 
-    .emailMinHeight {
-        min-height: 4.8rem;
-    }
-
-    .errMsg {
-        margin: 0.5rem 0;
-        max-width: 18rem;
-        text-wrap: wrap;
-        color: hsl(var(--error));
-    }
-
-    .flex-col {
+    .password {
         display: flex;
         flex-direction: column;
+        gap: 6px;
     }
 
-    .forgotten {
-        margin: 0 0 0.5rem 0.5rem;
-    }
-
-    .head {
-        display: flex;
-        justify-content: space-between;
-    }
-
-    .home {
-        margin-right: 5px;
+    .link {
+        align-self: flex-end;
+        padding: 0;
+        font-family: var(--fd-font);
+        font-size: 13px;
+        color: var(--fd-anchor);
+        background: none;
+        border: none;
         cursor: pointer;
     }
 
-    .loginWith {
+    .link:hover {
+        text-decoration: underline;
+    }
+
+    .feedback {
+        margin-top: 16px;
+    }
+
+    .detail {
+        margin-top: 4px;
+    }
+
+    .alternatives {
         display: flex;
-        justify-content: center;
-        margin-top: -0.9rem;
-    }
-
-    .loginWith > div {
-        padding: 0 0.5rem;
-        font-size: 0.8rem;
-        color: hsla(var(--text) / 0.6);
-        background: hsl(var(--bg));
-    }
-
-    .name {
-        margin: 0 0.5rem;
-    }
-
-    .providersSeparator {
-        margin: 1rem 0 -0.5rem 0;
-    }
-
-    .separator {
-        height: 1px;
-        background: hsla(var(--bg-high) / 0.8);
-    }
-
-    .providers {
-        margin-top: 0.66rem;
-    }
-
-    .reg {
-        margin-top: 0.5rem;
-        color: var(--text);
-    }
-
-    .success {
-        margin: 0 5px;
-        color: hsl(var(--action));
+        flex-direction: column;
+        gap: 10px;
     }
 </style>

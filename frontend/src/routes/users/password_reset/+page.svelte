@@ -1,3 +1,11 @@
+<script module lang="ts">
+    // funcd layout: markup and styles of this page are funcd's; the instance
+    // script below is upstream rauthy, unchanged, so rebases only conflict on
+    // markup.
+    import FuncdAuthShell from '$lib5/funcd/FuncdAuthShell.svelte';
+    import FuncdAlert from '$lib5/funcd/FuncdAlert.svelte';
+</script>
+
 <script lang="ts">
     import Button from '$lib/button/Button.svelte';
     import { IS_DEV, TPL_CLIENT_LOGO_UPDATED } from '$utils/constants';
@@ -47,84 +55,40 @@
 </script>
 
 <svelte:head>
-    <title>{t?.register.register || 'Register'}</title>
+    <title>{t?.passwordReset.passwordReset || 'Password Reset'}</title>
 </svelte:head>
 
 <Template id={TPL_CLIENT_LOGO_UPDATED} bind:value={clientLogoUpdated} />
 
-<Main>
-    <ContentCenter>
-        <div class="container">
-            <ClientLogo
-                clientId="rauthy"
-                updated={clientLogoUpdated > -1 ? clientLogoUpdated : undefined}
+<FuncdAuthShell title={t.passwordReset.passwordReset} subtitle={t.authorize.passwordResetDesc}>
+    <Form action="/auth/v1/users/request_reset" {onSubmit} withPowAs="pow">
+        <div class="stack">
+            <Input
+                typ="email"
+                name="email"
+                autocomplete="email"
+                label={t.common.email}
+                placeholder={t.common.email}
+                required
+                value={email_hint.get()}
+                width="100%"
             />
 
-            <div class="desc">
-                <h1>{t.passwordReset.passwordReset}</h1>
-                <p>{t.authorize.passwordResetDesc}</p>
-            </div>
+            <Button type="submit" {isLoading} width="100%">{t.authorize.passwordRequest}</Button>
 
-            <Form action="/auth/v1/users/request_reset" {onSubmit} withPowAs="pow">
-                <Input
-                    typ="email"
-                    name="email"
-                    autocomplete="email"
-                    label={t.common.email}
-                    placeholder={t.common.email}
-                    required
-                    value={email_hint.get()}
-                />
-
-                <div class="submit">
-                    <Button type="submit" {isLoading}>{t.authorize.passwordRequest}</Button>
-                </div>
-                {#if success}
-                    <div class="success">
-                        {t.authorize.passwordResetSuccess}<br />
-                    </div>
-                {:else if err}
-                    <div class="err">
-                        {err}
-                    </div>
-                {/if}
-            </Form>
+            {#if success}
+                <FuncdAlert>{t.authorize.passwordResetSuccess}</FuncdAlert>
+            {:else if err}
+                <FuncdAlert color="error">{err}</FuncdAlert>
+            {/if}
         </div>
-
-        <ThemeSwitch absolute />
-        <LangSelector absolute />
-    </ContentCenter>
-</Main>
+    </Form>
+</FuncdAuthShell>
 
 <style>
-    .submit {
-        margin-top: 0.66rem;
-    }
-
-    .container {
-        max-width: 23rem;
-        padding: 1rem;
+    .stack {
         display: flex;
         flex-direction: column;
-        justify-content: center;
-        border-radius: var(--border-radius);
-        background: hsla(var(--bg-high) / 0.25);
-    }
-
-    .err {
-        max-width: 16rem;
-    }
-
-    .err,
-    .success {
-        margin-top: 0.5rem;
-    }
-
-    .success {
-        color: hsl(var(--action));
-    }
-
-    .desc {
-        margin: 0.5rem 0;
+        gap: 16px;
     }
 </style>
