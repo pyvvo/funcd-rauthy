@@ -1,0 +1,20 @@
+<mjml lang="{{ lang }}">
+  <mj-head>
+    <mj-title>E-Mail Change Request</mj-title>
+    <mj-include path="./partials/head.mjml" />
+  </mj-head>
+  <mj-body background-color="#f5f6fe" width="552px">
+    <mj-include path="./partials/logo.mjml" />
+    <mj-wrapper padding="0 16px 32px">
+      <mj-section mj-class="card">
+        <mj-column>
+          <mj-text mj-class="title">{{ header }} {{ email_sub_prefix }}</mj-text>
+          <mj-text>{{ click_link }}</mj-text>
+          <mj-text>{{ validity }}</mj-text>
+          <mj-text>{{ expires }} <b>{{ exp }}</b></mj-text>
+          <mj-button href="{{ link }}">{{ button_text }}</mj-button>
+        </mj-column>
+      </mj-section>
+    </mj-wrapper>
+  </mj-body>
+</mjml>

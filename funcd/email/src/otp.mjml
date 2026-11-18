@@ -1,0 +1,20 @@
+<mjml lang="{{ lang }}">
+  <mj-head>
+    <mj-title>E-Mail OTP</mj-title>
+    <mj-include path="./partials/head.mjml" />
+  </mj-head>
+  <mj-body background-color="#f5f6fe" width="552px">
+    <mj-include path="./partials/logo.mjml" />
+    <mj-wrapper padding="0 16px 32px">
+      <mj-section mj-class="card">
+        <mj-column>
+          <mj-text mj-class="title">{{ header }} {{ email_sub_prefix }}</mj-text>
+          <mj-raw>{%- if !text.is_empty() -%}</mj-raw>
+          <mj-text>{{ text }}</mj-text>
+          <mj-raw>{%- endif -%}</mj-raw>
+          <mj-text mj-class="code">{{ code }}</mj-text>
+        </mj-column>
+      </mj-section>
+    </mj-wrapper>
+  </mj-body>
+</mjml>

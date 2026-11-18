@@ -1,0 +1,24 @@
+<mjml>
+<mj-head>
+  <mj-raw>
+    <meta name="color-scheme" content="light only" />
+    <meta name="supported-color-schemes" content="light" />
+  </mj-raw>
+  <mj-attributes>
+    <mj-all font-family="Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" />
+    <mj-text font-size="14px" line-height="1.55" color="#2a2839" padding="0 0 12px" />
+    <mj-button background-color="#6c5ce7" color="#ffffff" border="1px solid #6c5ce7" border-radius="12px" font-size="14px" font-weight="600" line-height="18px" inner-padding="9px 18px" padding="8px 0 0" align="left" />
+    <mj-divider border-color="#e3e2e9" border-width="1px" padding="24px 0 16px" />
+    <mj-class name="card" background-color="#ffffff" border-radius="20px" padding="32px" css-class="fd-card" />
+    <mj-class name="title" font-size="22px" font-weight="700" line-height="1.3" color="#000000" padding="0 0 16px" />
+    <mj-class name="muted" font-size="13px" color="#838290" />
+    <mj-class name="error" color="#fa5252" />
+    <mj-class name="code" font-family="ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="32px" font-weight="700" letter-spacing="4px" color="#000000" padding="8px 0 0" />
+    <mj-class name="secondary" background-color="#ffffff" color="#6c5ce7" />
+  </mj-attributes>
+  <mj-style>
+    .fd-card { box-shadow: -1px 1px 10px -1px rgba(0, 0, 0, 0.103); }
+    .fd-card b { color: #000000; }
+  </mj-style>
+</mj-head>
+</mjml>

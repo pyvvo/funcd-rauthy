@@ -1,0 +1,21 @@
+<mjml lang="{{ lang }}">
+  <mj-head>
+    <mj-title>E-Mail Change Request</mj-title>
+    <mj-include path="./partials/head.mjml" />
+  </mj-head>
+  <mj-body background-color="#f5f6fe" width="552px">
+    <mj-include path="./partials/logo.mjml" />
+    <mj-wrapper padding="0 16px 32px">
+      <mj-section mj-class="card">
+        <mj-column>
+          <mj-text mj-class="title">{{ header }} {{ email_sub_prefix }}</mj-text>
+          <mj-text>{{ msg }}</mj-text>
+          <mj-text>{{ email_changed_to }}</mj-text>
+          <mj-raw>{%- if !changed_by_admin.is_empty() -%}</mj-raw>
+          <mj-text mj-class="error">{{ changed_by_admin }}</mj-text>
+          <mj-raw>{%- endif -%}</mj-raw>
+        </mj-column>
+      </mj-section>
+    </mj-wrapper>
+  </mj-body>
+</mjml>

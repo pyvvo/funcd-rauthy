@@ -1,0 +1,30 @@
+<mjml lang="{{ lang }}">
+  <mj-head>
+    <mj-title>E-Mail Reset</mj-title>
+    <mj-include path="./partials/head.mjml" />
+  </mj-head>
+  <mj-body background-color="#f5f6fe" width="552px">
+    <mj-include path="./partials/logo.mjml" />
+    <mj-wrapper padding="0 16px 32px">
+      <mj-section mj-class="card">
+        <mj-column>
+          <mj-text mj-class="title">{{ header }} {{ email_sub_prefix }}</mj-text>
+          <mj-raw>{%- if !text.is_empty() -%}</mj-raw>
+          <mj-text>{{ text }}</mj-text>
+          <mj-raw>{%- endif -%}</mj-raw>
+          <mj-text>{{ click_link }}</mj-text>
+          <mj-text>{{ validity }}</mj-text>
+          <mj-text>{{ expires }} <b>{{ exp }}</b></mj-text>
+          <mj-button href="{{ link }}">{{ button_text }}</mj-button>
+          <mj-raw>{%- if !footer.is_empty() -%}</mj-raw>
+          <mj-divider />
+          <mj-text mj-class="muted">{{ footer }}</mj-text>
+          <mj-raw>{%- endif -%}</mj-raw>
+          <mj-raw>{%- if !link_request_new.is_empty() -%}</mj-raw>
+          <mj-button mj-class="secondary" href="{{ link_request_new }}">{{ button_text_request_new }}</mj-button>
+          <mj-raw>{%- endif -%}</mj-raw>
+        </mj-column>
+      </mj-section>
+    </mj-wrapper>
+  </mj-body>
+</mjml>

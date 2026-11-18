@@ -8,6 +8,8 @@
 #    upstream: auth logic (CSRF, PoW, WebAuthn, redirects) is never forked.
 # 3. Every static asset we add ships .br/.gz siblings: rauthy's asset handler
 #    serves `<path>.br` / `<path>.gz` to browsers and 404s without them.
+# 4. The mail templates are what funcd/email/src compiles to (MJML); SKIP when
+#    funcd/email has no node_modules (run `npm ci` there).
 set -euo pipefail
 
 UPSTREAM="${1:?usage: funcd/check.sh <upstream-tag>}"
@@ -35,7 +37,8 @@ allow+='|frontend/src/css/(funcd|global)\.css'
 allow+='|frontend/src/lib/funcd/.*'
 allow+='|frontend/src/lib/Error\.svelte'
 allow+='|frontend/static/assets/(fonts/.*|favicon\.svg|funcd-email\.png|rauthy_(dark|light)\.svg)'
-allow+='|templates/email/base\.html'
+allow+='|templates/email/(change_info|confirm_change|email_registered_already|event|login_location|otp'
+allow+='|reset|reset_info)\.html'
 allow+='|frontend/src/routes/(account/|device/|oidc/authorize/|oidc/callback/|oidc/logout/'
 allow+='|providers/callback/|users/register/|users/password_reset/|users/\{id\}/reset/reset/'
 allow+='|users/\{id\}/email_confirm/email_confirm/|users/\{id\}/revoke/revoke/)?\+page\.svelte'
@@ -72,6 +75,15 @@ while IFS= read -r f; do
         fail=1
     fi
 done < <(git diff --name-only --diff-filter=A "$UPSTREAM"...HEAD -- frontend/static/assets)
+
+if [ -d funcd/email/node_modules ] && command -v node >/dev/null; then
+    if ! node funcd/email/build.mjs --check; then
+        echo "mail templates are stale: run npm run build in funcd/email"
+        fail=1
+    fi
+else
+    echo "SKIP mail template check: no node or funcd/email/node_modules"
+fi
 
 if [ "$fail" -ne 0 ]; then
     exit 1

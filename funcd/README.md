@@ -14,11 +14,12 @@ rauthy with every user-facing page in funcd's look. The `funcd-ui` branch is an 
   activation, e-mail change confirmation, home, logout, device authorization, login revoke, the error
   pages (`lib/Error.svelte`), the OIDC and upstream-provider callbacks, and the account dashboard. The
   dashboard is restyled from its route, so `lib/account` stays upstream's.
-- **E-mails**: `templates/email/base.html` frames every mail in funcd's look (page tint, white card,
-  primary buttons) with the values written out, since mail clients drop CSS variables, so the client
-  theme rauthy passes in is not used. The funcd lockup is a PNG served from the issuer
-  (`<issuer>assets/funcd-email.png`); a mail client that cannot reach the issuer shows its alt text.
-  The subject and heading prefix and the sender name are config: set `EMAIL_SUB_PREFIX` and `SMTP_FROM`.
+- **E-mails**: written in [MJML](https://mjml.io) under `funcd/email/src` and compiled into rauthy's
+  askama templates (`templates/email/*.html`, see "Mails" below). The client theme rauthy passes in is
+  not used: the values are written out, since mail clients drop CSS variables. The funcd lockup is a PNG
+  served from the issuer (`<issuer>assets/funcd-email.png`); a mail client that cannot reach the issuer
+  shows its alt text. The subject and heading prefix and the sender name are config: set
+  `EMAIL_SUB_PREFIX` and `SMTP_FROM`.
 - **Left as upstream**: the admin UI (layout kept, colors remapped), the FedCM test page, the backend's
   plain 429 and "blocked" pages, and the admin's custom mails (their own inline HTML).
 
@@ -64,6 +65,24 @@ Open `http://localhost:5173/auth/v1/account`; the dev admin is in `config.toml`,
 mails at `http://localhost:8025`. Vite proxies
 `/auth/v1/dev` by prefix, so `/auth/v1/device` comes from the backend's build: run `just build-ui`
 and rebuild the backend to see a change there.
+
+## Mails
+
+Each mail is one MJML document in `funcd/email/src`, with the shared head (fonts, colors, button styles)
+and the logo in `src/partials`. `build.mjs` compiles them with MJML in strict mode and without web-font
+links, checks that every askama `{{ }}` and `{% %}` survives, and writes `templates/email/<name>.html`.
+The generated files are committed, so the backend builds without Node; never edit them by hand.
+
+```bash
+cd funcd/email
+npm ci
+npm run build
+```
+
+Fields that can be empty are wrapped in `<mj-raw>{%- if !field.is_empty() -%}</mj-raw>`, so they leave
+no gap. The text mails (`*.txt`) and `base.html` stay upstream's; no funcd mail extends `base.html`.
+When upstream changes a mail, port the change to its `.mjml` file: the backend build then checks every
+field against the Rust struct.
 
 ## Checks
 
