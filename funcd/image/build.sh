@@ -55,10 +55,10 @@ ui_stamp=templates/html/.funcd-ui-sources
 if [ -f "$ui_stamp" ] && [ "$(cat "$ui_stamp")" = "$ui_sources" ]; then
     echo "reusing the UI built from these sources"
 else
-    rm -f "$ui_stamp"
-    in_builder funcd-rauthy-builder bash -c \
-        'just build-wasm && (cd frontend && npm ci --no-audit --no-fund) && just build-ui'
-    echo "$ui_sources" > "$ui_stamp"
+    # The builder runs as root, and on a Linux host templates/html comes back owned by root,
+    # so the container removes and writes the stamp itself.
+    in_builder -e "UI_SOURCES=$ui_sources" -e "UI_STAMP=$ui_stamp" funcd-rauthy-builder bash -c \
+        'rm -f "$UI_STAMP" && just build-wasm && (cd frontend && npm ci --no-audit --no-fund) && just build-ui && echo "$UI_SOURCES" > "$UI_STAMP"'
 fi
 
 # a release build refuses to compile without the FIDO metadata dataset (src/data/build.rs),
