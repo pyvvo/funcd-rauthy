@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/pyvvo/funcd-rauthy/compare/funcd-rauthy-v0.1.0...funcd-rauthy-v0.1.1) (2026-11-19)
+
+
+### Bug Fixes
+
+* **image:** write the UI stamp from the builder container ([#4](https://github.com/pyvvo/funcd-rauthy/issues/4)) ([9e6bfb4](https://github.com/pyvvo/funcd-rauthy/commit/9e6bfb4f034c87618ee20405bfd659dca5da429b))
+
 ## 0.1.0 (2026-11-19)
 
 
