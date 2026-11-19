@@ -1,0 +1,109 @@
+name: funcd image
+
+# Builds ghcr.io/pyvvo/funcd-rauthy:<version> with funcd/image/build.sh: each platform on a
+# runner of its own architecture at the same time, pushed by digest, then one index of both
+# under the tag (funcd/image/index.sh). The release workflow calls it for each release; a
+# manual run builds any ref under a tag you name, for example to try a change to the build.
+on:
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        required: true
+      ref:
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Image tag to push
+        type: string
+        required: true
+      ref:
+        description: Branch, tag or commit to build
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  platform:
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+
+      # The full-LTO link of the release profile peaks near 7.5 GiB. Swap guards it on the disk
+      # with the most free space, when that disk keeps room for the build.
+      - name: Make room for the release build
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          read -r avail dir < <(df --output=avail,target / /mnt 2>/dev/null | tail -n +2 | sort -n | tail -1)
+          if [ "$avail" -ge $((40 * 1024 * 1024)) ]; then
+            swap=${dir%/}/funcd-swap
+            sudo fallocate -l 8G "$swap"
+            sudo chmod 600 "$swap"
+            sudo mkswap "$swap"
+            sudo swapon "$swap"
+          else
+            echo "no swap: $((avail / 1024 / 1024)) GiB free on $dir"
+          fi
+          free -h
+          df -h
+
+      - name: Log in to ghcr.io
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+
+      - name: Build and push linux/${{ matrix.arch }} by digest
+        env:
+          ARCH: ${{ matrix.arch }}
+          TAG: ${{ inputs.version }}
+          DIGEST_DIR: ${{ runner.temp }}/digests
+        run: funcd/image/build.sh --push
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: digest-${{ matrix.arch }}
+          path: ${{ runner.temp }}/digests/${{ matrix.arch }}
+          if-no-files-found: error
+          retention-days: 1
+
+  index:
+    needs: platform
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: digest-*
+          path: ${{ runner.temp }}/digests
+          merge-multiple: true
+
+      - name: Log in to ghcr.io
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+
+      - name: Tag the image of both platforms
+        env:
+          TAG: ${{ inputs.version }}
+          DIGESTS: ${{ runner.temp }}/digests
+        run: |
+          image=ghcr.io/pyvvo/funcd-rauthy
+          funcd/image/index.sh "$image:$TAG" "$image@$(cat "$DIGESTS/amd64")" "$image@$(cat "$DIGESTS/arm64")"
