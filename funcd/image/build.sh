@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
-# Builds the funcd-rauthy image the way upstream's `just build` does: the UI and
-# both release binaries in a builder container, then the distroless runtime image.
+# Builds the funcd-rauthy image the way upstream's `just build` does: the UI and the
+# release binaries in a builder container, then the distroless runtime image.
 #
 #   funcd/image/build.sh           load the build host's platform into docker
-#   funcd/image/build.sh --push    push linux/amd64 and linux/arm64 to the registry
+#   funcd/image/build.sh --push    push linux/amd64 and linux/arm64 under the tag
 #
-# DOCKER picks the docker command (e.g. "docker --context colima-funcd-build"),
-# IMAGE the repository (default ghcr.io/pyvvo/funcd-rauthy), TAG the tag. The
-# default tag is <rauthy version>-funcd.<commit>, so the tree must be committed;
-# the release workflow passes the release version.
+# ARCH builds one platform only (amd64 or arm64). --push pushes each platform's image by
+# digest, then funcd/image/index.sh tags one index of both; with a single ARCH the tag is
+# left to the caller, and DIGEST_DIR/<arch> receives the digest (the release workflow
+# builds each platform on its own runner). DOCKER picks the docker command (e.g.
+# "docker --context colima-funcd-build"), IMAGE the repository (default
+# ghcr.io/pyvvo/funcd-rauthy), TAG the tag. The default tag is
+# <rauthy version>-funcd.<commit>, so the tree must be committed; the release workflow
+# passes the release version.
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
@@ -16,6 +20,23 @@ docker=${DOCKER:-docker}
 image=${IMAGE:-ghcr.io/pyvvo/funcd-rauthy}
 push=false
 [ "${1:-}" = "--push" ] && push=true
+arches=${ARCH:-amd64 arm64}
+triple() {
+    case "$1" in
+        amd64) echo x86_64-unknown-linux-gnu ;;
+        arm64) echo aarch64-unknown-linux-gnu ;;
+        *) echo "ARCH must be amd64 or arm64, not '$1'" >&2; return 1 ;;
+    esac
+}
+for arch in $arches; do triple "$arch" > /dev/null; done
+case "$(uname -m)" in
+    x86_64 | amd64) host=amd64 ;;
+    *) host=arm64 ;;
+esac
+if ! $push && [[ " $arches " != *" $host "* ]]; then
+    echo "loading into docker needs the build host's platform ($host) in ARCH" >&2
+    exit 1
+fi
 
 if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
     echo "uncommitted changes: the tag names the commit, commit them first" >&2
@@ -72,18 +93,23 @@ else
     in_builder funcd-rauthy-builder just fido-mds-prep
 fi
 
-echo "== release binary, amd64"
-in_builder funcd-rauthy-builder cargo build --release --target x86_64-unknown-linux-gnu
-
-echo "== release binary, arm64"
-in_builder -e JEMALLOC_SYS_WITH_LG_PAGE=16 funcd-rauthy-builder \
-    cargo build --release --target aarch64-unknown-linux-gnu
+copy="mkdir -p out"
+for arch in $arches; do
+    echo "== release binary, $arch"
+    if [ "$arch" = arm64 ]; then
+        # as upstream's justfile: 64 KiB jemalloc pages, so it runs on arm64 hosts with large pages
+        in_builder -e JEMALLOC_SYS_WITH_LG_PAGE=16 funcd-rauthy-builder \
+            cargo build --release --target "$(triple "$arch")"
+    else
+        in_builder funcd-rauthy-builder cargo build --release --target "$(triple "$arch")"
+    fi
+    copy+=" && cp /target/$(triple "$arch")/release/rauthy out/rauthy_$arch"
+done
 
 echo "== runtime image $image:$tag"
 mkdir -p "$ctx/out/empty"
-in_builder funcd-rauthy-builder bash -c \
-    'mkdir -p out && cp /target/x86_64-unknown-linux-gnu/release/rauthy out/rauthy_amd64 && cp /target/aarch64-unknown-linux-gnu/release/rauthy out/rauthy_arm64'
-cp out/rauthy_amd64 out/rauthy_arm64 "$ctx/out/"
+in_builder funcd-rauthy-builder bash -c "$copy"
+for arch in $arches; do cp "out/rauthy_$arch" "$ctx/out/"; done
 cp config-local-test.toml LICENSE "$ctx/"
 cp -R funcd/licenses "$ctx/licenses"
 
@@ -92,24 +118,31 @@ args=(
     --build-arg "CREATED=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     --build-arg "VERSION=$tag"
     --build-arg "REVISION=$revision"
-    -t "$image:$tag"
 )
 if $push; then
-    # a multi-platform push needs a docker-container builder; it is named, not made the default
+    # pushing by digest needs a docker-container builder; it is named, not made the default
     $docker buildx inspect funcd-rauthy > /dev/null 2>&1 ||
         $docker buildx create --name funcd-rauthy --driver docker-container > /dev/null
-    # ghcr.io links a multi-platform image to its repository from the index, not from the
-    # per-platform labels; that link is what lets this repository's workflows push it
-    $docker buildx build --builder funcd-rauthy --platform linux/amd64,linux/arm64 --push \
-        --annotation "index:org.opencontainers.image.source=https://github.com/pyvvo/funcd-rauthy" \
-        --annotation "index:org.opencontainers.image.description=rauthy with its user-facing pages and mails in funcd's look" \
-        --annotation "index:org.opencontainers.image.licenses=Apache-2.0" \
-        "${args[@]}" "$ctx"
+    refs=()
+    for arch in $arches; do
+        $docker buildx build --builder funcd-rauthy --platform "linux/$arch" \
+            --output "type=image,name=$image,push-by-digest=true,name-canonical=true,push=true" \
+            --metadata-file "$ctx/metadata-$arch.json" "${args[@]}" "$ctx"
+        digest=$(python3 -I -c 'import json, sys; print(json.load(open(sys.argv[1]))["containerimage.digest"])' \
+            "$ctx/metadata-$arch.json")
+        echo "== pushed linux/$arch: $image@$digest"
+        refs+=("$image@$digest")
+        if [ -n "${DIGEST_DIR:-}" ]; then
+            mkdir -p "$DIGEST_DIR"
+            echo "$digest" > "$DIGEST_DIR/$arch"
+        fi
+    done
+    if [ "${#refs[@]}" -eq 2 ]; then
+        DOCKER="$docker" funcd/image/index.sh "$image:$tag" "${refs[@]}"
+    else
+        echo "== done: one platform pushed by digest; funcd/image/index.sh tags the index"
+    fi
 else
-    case "$(uname -m)" in
-        x86_64 | amd64) platform=linux/amd64 ;;
-        *) platform=linux/arm64 ;;
-    esac
-    $docker buildx build --platform "$platform" --load "${args[@]}" "$ctx"
+    $docker buildx build --platform "linux/$host" --load -t "$image:$tag" "${args[@]}" "$ctx"
+    echo "== done: $image:$tag"
 fi
-echo "== done: $image:$tag"

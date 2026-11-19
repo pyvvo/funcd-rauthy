@@ -59,10 +59,12 @@ DOCKER="docker --context colima-funcd-build" funcd/image/build.sh
 DOCKER="docker --context colima-funcd-build" funcd/image/build.sh --push
 ```
 
-Without `--push` it loads the build host's platform into Docker; with it, both platforms go to the
-registry, which needs `docker login ghcr.io` with a token that has `write:packages`. The script skips
-the UI build when the committed frontend sources are unchanged since the last one, so a rebuild does not
-relink both binaries.
+Without `--push` it loads the build host's platform into Docker. With it, each platform's image is
+pushed by digest and `funcd/image/index.sh` tags one index of both; that needs `docker login ghcr.io`
+with a token that has `write:packages`. `ARCH=amd64` or `ARCH=arm64` builds one platform only: loading
+needs the host's, and a push of one platform leaves the tag to `index.sh` and writes its digest to
+`$DIGEST_DIR/<arch>`. The script skips the UI build when the committed frontend sources are unchanged
+since the last one, so a rebuild does not relink the binaries.
 
 ## Licence
 
@@ -84,8 +86,12 @@ development.
 - **`funcd-pr-title.yml`**: PRs are squash-merged with their title as the commit message, so the title
   must be a conventional commit.
 - **`funcd-release.yml`**: release-please (`funcd/release-please-config.json`) keeps a release PR open
-  on `funcd-ui`. Merging it tags `funcd-rauthy-v<version>`, writes `funcd/CHANGELOG.md`, and builds
-  and pushes `ghcr.io/pyvvo/funcd-rauthy:<version>` with `funcd/image/build.sh`.
+  on `funcd-ui`. Merging it tags `funcd-rauthy-v<version>`, writes `funcd/CHANGELOG.md`, and runs
+  `funcd-image.yml`.
+- **`funcd-image.yml`**: builds each platform at the same time on a runner of its own architecture
+  (`ubuntu-latest`, `ubuntu-24.04-arm`) with `ARCH=<arch> funcd/image/build.sh --push`, then tags
+  `ghcr.io/pyvvo/funcd-rauthy:<version>` with `funcd/image/index.sh`. To try a change to the build
+  without a release, run it by hand: `gh workflow run funcd-image.yml -f version=<tag> -f ref=<ref>`.
 
 Release tags carry the `funcd-rauthy-` prefix so they never meet upstream's `v<version>` tags. After a
 rebase onto a new upstream tag, the last release commit is no longer in the history: set
